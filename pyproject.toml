@@ -1,0 +1,7 @@
+[tool.pyright]
+include = ["app", "scripts", "tests"]
+extraPaths = ["."]
+pythonVersion = "3.14"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

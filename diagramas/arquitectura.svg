@@ -1,0 +1,89 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1240" viewBox="0 0 1200 1240" role="img" aria-labelledby="title description">
+  <title id="title">Monolito modular: creación atómica de un pedido</title>
+  <desc id="description">Un cliente llama a FastAPI dentro de una única aplicación. Orders valida con Catalog, reserva con Inventory y agrega el pedido mediante OrderPersistence. Todos usan una Session compartida; Orders decide commit o rollback. SQLite contiene products, inventory_items y orders; las dos últimas tablas referencian products, no se referencian entre sí.</desc>
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="9" refY="5" orient="auto"><path d="M0 0 L10 5 L0 10 Z" fill="#475569"/></marker>
+    <style>
+      text { font-family: Arial, Helvetica, sans-serif; fill: #172b4d; }
+      .title { font-size: 28px; font-weight: 700; }
+      .heading { font-size: 21px; font-weight: 700; }
+      .body { font-size: 18px; }
+      .label { font-size: 16px; fill: #334155; }
+      .flow { fill: none; stroke: #475569; stroke-width: 2; marker-end: url(#arrow); }
+      .box { stroke-width: 1.5; }
+    </style>
+  </defs>
+  <rect width="1200" height="1240" fill="#ffffff"/>
+  <text x="50" y="43" class="title">Pedido y existencias: una sola transacción</text>
+  <text x="50" y="73" class="body">Flujo de POST /orders · servicios internos, sin red entre módulos</text>
+
+  <rect x="410" y="96" width="380" height="64" rx="12" fill="#f1f5f9" stroke="#94a3b8" class="box"/>
+  <text x="600" y="135" text-anchor="middle" class="heading">Cliente HTTP / TestClient</text>
+  <text x="616" y="187" class="label">product_id + quantity</text>
+
+  <rect x="40" y="205" width="1120" height="991" rx="18" fill="#f8fafc" stroke="#94a3b8" stroke-dasharray="7 5" class="box"/>
+  <path d="M600 160 V246" class="flow"/>
+  <text x="65" y="232" class="label">UNA APLICACIÓN · FastAPI + módulos + SQLAlchemy</text>
+  <rect x="360" y="250" width="480" height="95" rx="12" fill="#eff6ff" stroke="#2563eb" class="box"/>
+  <text x="600" y="282" text-anchor="middle" class="heading">FastAPI · límite HTTP</text>
+  <text x="600" y="312" text-anchor="middle" class="body">Valida el cuerpo y entrega la Session</text>
+  <text x="600" y="335" text-anchor="middle" class="label">Cuerpo inválido → 422 antes de Orders</text>
+  <path d="M600 345 V397" class="flow"/>
+  <text x="616" y="377" class="label">place_order(session, command)</text>
+
+  <rect x="320" y="400" width="560" height="92" rx="12" fill="#ecfdf5" stroke="#059669" class="box"/>
+  <text x="600" y="432" text-anchor="middle" class="heading">OrdersService · dueño de la transacción</text>
+  <text x="600" y="462" text-anchor="middle" class="body">Coordina 1 → 2 → 3; decide commit o rollback</text>
+  <path d="M410 492 V520 H230 V568" class="flow"/>
+  <path d="M600 492 V568" class="flow"/>
+  <path d="M790 492 V520 H970 V568" class="flow"/>
+  <text x="100" y="513" class="label">1 · validar producto</text>
+  <text x="616" y="552" class="label">2 · reservar</text>
+  <text x="838" y="513" class="label">3 · agregar pedido</text>
+
+  <rect x="80" y="572" width="300" height="110" rx="12" fill="#ecfdf5" stroke="#059669" class="box"/>
+  <text x="230" y="605" text-anchor="middle" class="heading">CatalogService</text>
+  <text x="230" y="634" text-anchor="middle" class="body">Consulta precio y estado activo</text>
+  <text x="230" y="661" text-anchor="middle" class="label">Propietario: Product</text>
+  <rect x="450" y="572" width="300" height="110" rx="12" fill="#ecfdf5" stroke="#059669" class="box"/>
+  <text x="600" y="605" text-anchor="middle" class="heading">InventoryService</text>
+  <text x="600" y="634" text-anchor="middle" class="body">Comprueba y descuenta stock</text>
+  <text x="600" y="661" text-anchor="middle" class="label">Propietario: InventoryItem</text>
+  <rect x="820" y="572" width="300" height="110" rx="12" fill="#ecfdf5" stroke="#059669" class="box"/>
+  <text x="970" y="605" text-anchor="middle" class="heading">OrderPersistence</text>
+  <text x="970" y="634" text-anchor="middle" class="body">Adaptador: session.add(order)</text>
+  <text x="970" y="661" text-anchor="middle" class="label">Propietario del modelo: Orders</text>
+  <path d="M230 682 V751" class="flow"/>
+  <path d="M600 682 V751" class="flow"/>
+  <path d="M970 682 V751" class="flow"/>
+  <text x="246" y="722" class="label">Consulta</text>
+  <text x="616" y="722" class="label">Modifica en sesión</text>
+  <text x="986" y="722" class="label">Agrega sin commit</text>
+
+  <rect x="80" y="755" width="1040" height="110" rx="12" fill="#fffbeb" stroke="#d97706" class="box"/>
+  <text x="600" y="787" text-anchor="middle" class="heading">Una Session compartida · SQLAlchemy</text>
+  <text x="600" y="815" text-anchor="middle" class="body">Orders: éxito → commit de pedido y stock; rechazo o falla → rollback</text>
+  <text x="600" y="843" text-anchor="middle" class="label">Database crea y cierra sesiones · Catalog, Inventory y el adaptador no confirman</text>
+  <path d="M600 865 V930" class="flow"/>
+  <text x="616" y="904" class="label">Persistencia atómica</text>
+
+  <rect x="80" y="934" width="1040" height="235" rx="12" fill="#f5f3ff" stroke="#7c3aed" class="box"/>
+  <text x="105" y="965" class="heading">SQLite · relaciones persistentes</text>
+  <rect x="110" y="1000" width="335" height="130" rx="8" fill="#ffffff" stroke="#a78bfa" class="box"/>
+  <text x="135" y="1030" class="heading">products · Catalog</text>
+  <text x="135" y="1060" class="body">id PK · precio · estado activo</text>
+  <text x="135" y="1090" class="label">Un producto: 0..1 inventario</text>
+  <text x="135" y="1115" class="label">Un producto: 0..N pedidos</text>
+  <rect x="750" y="986" width="335" height="75" rx="8" fill="#ffffff" stroke="#a78bfa" class="box"/>
+  <text x="770" y="1014" class="heading">inventory_items · Inventory</text>
+  <text x="770" y="1044" class="label">product_id PK / FK · quantity ≥ 0</text>
+  <rect x="750" y="1080" width="335" height="65" rx="8" fill="#ffffff" stroke="#a78bfa" class="box"/>
+  <text x="770" y="1107" class="heading">orders · Orders</text>
+  <text x="770" y="1133" class="label">id PK · product_id FK · precio · cantidad</text>
+  <path d="M750 1024 H448" class="flow"/>
+  <path d="M750 1110 H448" class="flow"/>
+  <text x="470" y="1010" class="label">FK → products.id</text>
+  <text x="470" y="1096" class="label">FK → products.id</text>
+  <text x="105" y="1158" class="label">PRAGMA foreign_keys=ON · No hay FK entre orders e inventory_items</text>
+  <text x="50" y="1223" class="label">Las lecturas HTTP invocan directamente su servicio. Este flujo no acredita seguridad ante concurrencia.</text>
+</svg>

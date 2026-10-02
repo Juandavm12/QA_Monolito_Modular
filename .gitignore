@@ -1,0 +1,80 @@
+# Local Pi runtime state
+.atl/
+.codegraph/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Test, type-checker, and tool caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.pyre/
+.tox/
+.nox/
+.hypothesis/
+
+# Coverage and test reports generated locally
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Local SQLite runtime databases and journals
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+*.db-wal
+*.db-shm
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
+
+# Editor and operating-system noise
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# Generated temporary files
+.tmp/
+tmp/
+*.tmp
+respaldo/
+presentacion/
+.atl/
+.codegraph/
+
+# Material de preparación y evidencia conservado solo localmente
+evidencias/
+docs/checklist_entrega.md
+docs/ensayo_defensa.md
+docs/guion_demostracion.md
+docs/matriz_casos_prueba.md
+docs/plan_exposicion.md
+docs/referencias.md
+docs/resultados_conclusiones.md
+docs/trazabilidad.md
+scripts/build_presentation.py
+scripts/generate_evidence.py
+scripts/preflight.py
+requirements-docs.txt

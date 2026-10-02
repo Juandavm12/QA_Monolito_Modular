@@ -1,0 +1,37 @@
+flowchart TB
+    Client["Cliente HTTP / TestClient"]
+    subgraph Application["UNA APLICACIÓN · FastAPI + módulos + SQLAlchemy"]
+        API["FastAPI · límite HTTP<br/>Valida cuerpo; entrega Session<br/>Cuerpo inválido: 422 antes de Orders"]
+        Orders["OrdersService · dueño de la transacción<br/>Coordina 1 → 2 → 3<br/>Decide commit o rollback"]
+        Catalog["CatalogService<br/>Consulta precio y estado activo<br/>Propietario: Product"]
+        Inventory["InventoryService<br/>Comprueba y descuenta stock<br/>Propietario: InventoryItem"]
+        Persistence["OrderPersistence<br/>Adaptador: session.add(order)<br/>Modelo propiedad de Orders"]
+        Session["Una Session compartida · SQLAlchemy<br/>Orders: éxito → commit de pedido y stock<br/>Rechazo o falla → rollback<br/>Database crea y cierra; colaboradores no confirman"]
+        subgraph SQLite["SQLite · PRAGMA foreign_keys=ON"]
+            Products["products · Catalog<br/>id PK · precio · estado activo"]
+            Items["inventory_items · Inventory<br/>product_id PK / FK · quantity ≥ 0"]
+            OrderTable["orders · Orders<br/>id PK · product_id FK · precio · cantidad"]
+            Items -->|"FK → products.id · 0..1 inventario por producto"| Products
+            OrderTable -->|"FK → products.id · 0..N pedidos por producto"| Products
+        end
+        API -->|"place_order(session, command)"| Orders
+        Orders -->|"1 · validar producto"| Catalog
+        Orders -->|"2 · reservar"| Inventory
+        Orders -->|"3 · agregar pedido"| Persistence
+        Catalog -->|"Consulta con la misma sesión"| Session
+        Inventory -->|"Modifica en sesión"| Session
+        Persistence -->|"Agrega sin commit"| Session
+        Session -->|"Persistencia atómica"| SQLite
+    end
+    Client -->|"POST /orders · product_id + quantity"| API
+    %% Diagrama del flujo de escritura. Las lecturas HTTP llaman directamente
+    %% al servicio correspondiente. No hay FK orders → inventory_items.
+    %% No se acredita seguridad ante concurrencia.
+    classDef http fill:#eff6ff,stroke:#2563eb,color:#172b4d
+    classDef service fill:#ecfdf5,stroke:#059669,color:#172b4d
+    classDef transaction fill:#fffbeb,stroke:#d97706,color:#172b4d
+    classDef table fill:#f5f3ff,stroke:#7c3aed,color:#172b4d
+    class API http
+    class Orders,Catalog,Inventory,Persistence service
+    class Session transaction
+    class Products,Items,OrderTable table
