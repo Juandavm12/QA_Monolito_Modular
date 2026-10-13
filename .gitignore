@@ -61,8 +61,6 @@ tmp/
 *.tmp
 respaldo/
 presentacion/
-.atl/
-.codegraph/
 
 # Material de preparación y evidencia conservado solo localmente
 evidencias/
@@ -78,3 +76,23 @@ scripts/build_presentation.py
 scripts/generate_evidence.py
 scripts/preflight.py
 requirements-docs.txt
+# Public delivery: expose only selected artifacts, never runtime/private preparation.
+!docs/matriz_casos_prueba.md
+!docs/referencias.md
+!docs/resultados_conclusiones.md
+!scripts/generate_evidence.py
+!presentacion/
+presentacion/*
+!presentacion/index.html
+!evidencias/
+evidencias/*
+!evidencias/README.md
+!evidencias/api/
+evidencias/api/*
+!evidencias/api/*.json
+!evidencias/reportes/
+evidencias/reportes/*
+!evidencias/reportes/entorno.txt
+!evidencias/reportes/generacion-api.txt
+!evidencias/reportes/pytest-salida.txt
+!evidencias/reportes/pytest-junit.xml

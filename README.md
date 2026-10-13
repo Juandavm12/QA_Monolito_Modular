@@ -88,3 +88,23 @@ La suite contiene siete pruebas (cinco de integración y dos HTTP): pedido corre
 ## Limitaciones
 
 El alcance es local y acotado: no hay autenticación, pagos, interfaz gráfica, colas ni servicios externos. Los siete casos no acreditan concurrencia, carga, seguridad integral ni disponibilidad de producción. Las fallas técnicas se inyectan en integración antes y después de `flush`, no mediante un endpoint artificial; no se prueban fallas durante `commit` ni HTTP `500`. `/health` informa disponibilidad de la aplicación, no una comprobación profunda de la base de datos.
+
+## Índice de los diez entregables (guía, sección 12)
+
+| # | Entregable | Archivo o recorrido |
+|---|---|---|
+| 1 | Presentación utilizada durante la exposición | [HTML utilizado](presentacion/index.html) |
+| 2 | Diagrama de la arquitectura | [SVG](diagramas/arquitectura.svg), [Mermaid](diagramas/arquitectura.mmd) |
+| 3 | Documento con la estrategia de pruebas | [Estrategia](docs/estrategia_pruebas.md) |
+| 4 | Matriz con mínimo cinco casos de prueba | [Siete casos](docs/matriz_casos_prueba.md) |
+| 5 | Código fuente del laboratorio | [Aplicación](app/main.py), [pruebas](tests/test_orders_integration.py) |
+| 6 | Scripts y archivos de configuración | [Inicialización](scripts/init_db.py), [seed](scripts/seed_data.py), [evidencia](scripts/generate_evidence.py), [pytest](pyproject.toml), [requisitos](requirements-dev.txt) |
+| 7 | Instrucciones para instalar y ejecutar el laboratorio | Sección Instalación y ejecución de este README |
+| 8 | Evidencias de las pruebas ejecutadas | [Índice y reproducción](evidencias/README.md) |
+| 9 | Análisis de resultados y conclusiones | [Resultados](docs/resultados_conclusiones.md) |
+| 10 | Referencias consultadas | [Referencias](docs/referencias.md) |
+
+Las diapositivas corresponden a la versión de cinco casos utilizada durante la exposición; el paquete actual amplía la suite a siete casos (cinco de integración y dos de sistema local).
+
+### Presentación utilizada
+Clonar o descargar el repositorio y abrir `presentacion/index.html` en un navegador local. GitHub muestra el código HTML, no reproduce las diapositivas desde el enlace al archivo. Flechas/espacio navegan, Home/End saltan, F solicita pantalla completa y C abre comandos (Esc cierra). Sin JavaScript se muestran todas las diapositivas; impresión disponible.

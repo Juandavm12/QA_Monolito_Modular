@@ -1,0 +1,16 @@
+{
+  "detail": [
+    {
+      "ctx": {
+        "gt": 0
+      },
+      "input": 0,
+      "loc": [
+        "body",
+        "quantity"
+      ],
+      "msg": "Input should be greater than 0",
+      "type": "greater_than"
+    }
+  ]
+}

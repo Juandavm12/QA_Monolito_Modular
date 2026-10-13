@@ -1,51 +1,46 @@
 # Estrategia de pruebas
 
-La suite protege la integridad del pedido y sus existencias mediante cinco pruebas de integración y dos pruebas del borde HTTP. Utiliza servicios y SQLite reales, datos sintéticos y una base temporal por caso; no necesita Uvicorn ni red externa.
+Validar que pedido y existencias se confirman juntos o quedan sin cambios en los escenarios definidos. [Matriz con siete casos](matriz_casos_prueba.md) · [evidencia actual](../evidencias/README.md).
 
-## Siete casos ejecutables
+## 1. Objetivo de las pruebas
+Comprobar integridad transaccional y coherencia del borde HTTP local, con aserciones sobre respuestas y estado SQL persistido.
 
-| Prueba | Nivel | Comprobación |
-|---|---|---|
-| `test_places_order_and_commits_stock` | Integración | Cantidad 3: stock de 10 a 7 y pedido recuperable con producto y cantidad correctos. |
-| `test_insufficient_stock_rolls_back` | Integración | Solicitar 11 con stock 10 produce `InsufficientStockError`; quedan stock 10 y cero pedidos. |
-| `test_non_sellable_product_does_not_reserve` | Integración | Producto inactivo produce `ProductInactiveError`; quedan stock 4 y cero pedidos. |
-| `test_persistence_failure_rolls_back` | Integración | Falla antes de `flush` produce `PersistenceError`; quedan stock 10 y cero pedidos en otra sesión. |
-| `test_post_flush_failure_rolls_back_before_session_close` | Integración | Tras `flush`, stock 7 y un pedido dentro de la transacción; `RuntimeError` se traduce a `PersistenceError`. Quedan stock 10 y cero pedidos en la misma sesión y otra independiente antes de cerrar la original. |
-| `test_valid_order_http_flow_persists_order_and_stock` | Borde HTTP / sistema local | `POST` válido devuelve `201`; `GET` de pedido e inventario devuelven `200`, producto y cantidad 3 correctos, precio `12.50` y stock 10→7. Otra sesión confirma el pedido y stock persistidos. |
-| `test_invalid_quantity_is_rejected_without_persistence` | Borde HTTP / sistema local | `TestClient` envía cantidad 0: HTTP `422`, stock 10 y cero pedidos. |
+## 2. Componentes incluidos
+Catalog valida productos, Inventory reserva existencias y Orders orquesta una Session compartida. FastAPI es el borde externo; SQLAlchemy y SQLite basados en archivo son reales. [Diagrama](../diagramas/arquitectura.svg) · [arquitectura](arquitectura.md).
 
-Las cinco de integración están en [test_orders_integration.py](../tests/test_orders_integration.py); las dos HTTP en [test_orders_api.py](../tests/test_orders_api.py). La clasificación de sistema corresponde al límite HTTP local en proceso, no a un despliegue completo con servidor y red.
+## 3. Puntos de integración que serán validados
+| Punto | Casos |
+|---|---|
+| Orders → Catalog | CP-INT-01, CP-INT-04 |
+| Orders → Inventory | CP-INT-01, CP-INT-02 |
+| Orders → persistencia y rollback | CP-INT-05, CP-INT-06 |
+| HTTP → validación → servicios → SQLite → consultas | CP-SIS-03, CP-SIS-07 |
 
-## Aislamiento y dependencias
+## 4. Riesgos identificados
+| Riesgo | Caso |
+|---|---|
+| R1: confirmar stock sin pedido o viceversa | CP-INT-01 |
+| R2: aceptar más existencias de las disponibles | CP-INT-02 |
+| R3: entrada inválida modifica datos | CP-SIS-03 |
+| R4: producto inactivo reservado | CP-INT-04 |
+| R5: reserva en memoria sin pedido | CP-INT-05 |
+| R6: SQL parcial no revertido explícitamente | CP-INT-06 |
+| R7: HTTP exitoso sin persistencia coherente | CP-SIS-07 |
 
-La [fixture](../tests/conftest.py) utiliza `tmp_path` para crear SQLite basado en archivo. Cada prueba recibe un esquema nuevo con productos `active-product` (10 unidades), `zero-stock-product` (0) e `inactive-product` (4). Son identificadores distintos de los del seed de ejecución: `product-active`, `product-zero` y `product-inactive`. No se utiliza ni se modifica la base `runtime/lab02.db`.
+## 5. Alcance y exclusiones
+Cinco pruebas de integración y dos de sistema local con TestClient en proceso. No acreditan servidor de red, despliegue, concurrencia, carga, seguridad integral, fallas físicas, fallas de commit ni HTTP 500. No se mide porcentaje de cobertura. El producto sin stock existe en la fixture, pero no tiene caso dedicado.
 
-Catalog, Inventory, Orders y SQLAlchemy son reales. Las comprobaciones posteriores abren otra sesión para consultar estado persistido y evitar confundir el estado en memoria con una confirmación efectiva.
+## 6. Ambiente necesario
+Python 3.14 y requisitos fijados; [instalación](../README.md). Cada fixture crea SQLite temporal, sin usar runtime. [Versiones observadas](../evidencias/reportes/entorno.txt). No se requieren servicios externos ni tecnologías de pago.
 
-## Falla técnica controlada
+## 7. Datos de prueba
+Fixtures: `active-product` activo, precio 12.50, stock 10; `inactive-product` inactivo, stock 4; `zero-stock-product` stock 0. Cantidades 3 (éxito), 11 (insuficiente), 2 (inactivo), 0 (inválida). Seed de demo separado: `product-active`, `product-inactive`, `product-zero`. Inicializar agrega ausentes, no restablece stock consumido.
 
-El doble original es `FailingOrderPersistence`, inyectado en `OrdersService(persistence=...)`. Implementa `save_order` y lanza `RuntimeError` después de que Inventory haya reservado en la sesión, antes del `commit`. Orders ejecuta `rollback` y traduce la excepción a `PersistenceError`.
+## 8. Dependencias reales y simuladas
+Servicios, ORM y SQLite son reales. Solo dos dobles de persistencia: `FailingOrderPersistence` lanza RuntimeError después de reserva en memoria, antes de flush (CP-INT-05). `FailingFlushedOrderPersistence` agrega pedido, hace flush real y afirma stock 7 y un pedido antes de lanzar RuntimeError (CP-INT-06). Orders traduce a PersistenceError y ejecuta rollback. El segundo caso exige causa y mensaje exactos, stock 10 y cero pedidos en la misma sesión y en otra, antes de cerrar la original: no confunde rollback explícito con cierre. No simulan caída de SQLite ni fallo de commit.
 
-La prueba exige tanto la excepción como stock original y cero pedidos. La reserva está modificada en memoria dentro de la sesión: el doble falla antes de `flush`, por lo que no se ha emitido el `UPDATE` de stock. Este caso no acredita rollback de un `UPDATE` SQL ya enviado.
+## 9. Herramientas seleccionadas
+pytest automatiza aserciones y JUnit; TestClient recorre HTTP sin Uvicorn; SQLAlchemy permite verificación independiente. El [generador](../scripts/generate_evidence.py) captura nueve respuestas en SQLite descartable. [Reproducción exacta](../evidencias/README.md).
 
-El nuevo doble `FailingFlushedOrderPersistence` agrega el pedido y ejecuta `session.flush()`: comprueba stock 7 y un pedido dentro de la transacción antes de lanzar un `RuntimeError` deliberado. El test valida su causa y mensaje fuera del servicio para impedir que un `AssertionError` traducido produzca un falso positivo. Después exige stock 10 y cero pedidos en la misma sesión y en una independiente, ambas antes de cerrar la original: el cierre no puede sustituir al rollback explícito.
-
-Ninguno simula una caída física de SQLite ni verifica un fallo durante `commit`; tampoco comprueban HTTP `500`. No existe un endpoint para provocar fallas artificiales.
-
-## Ejecución
-
-Con el entorno y dependencias del [README](../README.md):
-
-```bash
-python -m pytest -q -p no:cacheprovider
-python -m pytest -q -p no:cacheprovider \
-  tests/test_orders_integration.py::test_persistence_failure_rolls_back
-```
-
-La suite debe informar siete pruebas aprobadas; el segundo comando ejecuta únicamente el caso técnico original, anterior a `flush`. Una advertencia de deprecación de la combinación Starlette/TestClient con httpx puede aparecer con las versiones fijadas: se debe conservar y revisar, no ocultar ni interpretar como una prueba adicional.
-
-## Límites de cobertura
-
-El mapeo implementado permite HTTP `200`, `201`, `404`, `409`, `422` y `500`, pero la suite automatizada solo comprueba directamente `201`, `200` y `422` por HTTP. Los otros rechazos de negocio se ejercitan mediante servicios; los ejemplos del README permiten verificaciones HTTP adicionales.
-
-No se mide cobertura porcentual ni se prueban concurrencia, carga, autenticación, seguridad integral, migraciones, fallas de disco, desconexiones, precios cambiantes o disponibilidad en producción. El producto sin stock existe en la fixture, pero no tiene un caso dedicado. Siete resultados positivos respaldan estos contratos acotados, no la ausencia de defectos en todo el sistema.
+## 10. Criterios para determinar si una prueba es aprobada o fallida
+Aprobado: todas las aserciones del nodo se cumplen y pytest lo marca passed. Fallido: una aserción, excepción no esperada o error de preparación impide ese contrato; investigar sin sustituir evidencia. Suite aceptable: siete passed, cero failures/errors; conservar y revisar warnings. Los rechazos y fallas controladas esperados son casos aprobados. Los JSON solos no acreditan rollback ni conteos de tablas. El generador exige códigos 200/201/409/422 y equivalencia del pedido creado/consultado; es evidencia auxiliar, no un octavo caso de la suite.

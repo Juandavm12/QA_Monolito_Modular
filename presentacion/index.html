@@ -1,0 +1,719 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>Monolito modular · Integridad bajo prueba</title>
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #142238;
+      --line: #38506c;
+      --text: #f2f7ff;
+      --muted: #bed0e5;
+      --cyan: #66e3ed;
+      --blue: #83b7ff;
+      --amber: #ffd18a;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: system-ui, -apple-system, sans-serif;
+      font-size: 28px;
+      line-height: 1.35;
+    }
+    button, a { -webkit-tap-highlight-color: transparent; }
+    button {
+      font: inherit;
+      color: var(--text);
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      padding: 8px 18px;
+      cursor: pointer;
+    }
+    button:hover { border-color: var(--cyan); }
+    button:disabled { opacity: .4; cursor: default; }
+    :focus-visible { outline: 3px solid var(--cyan); outline-offset: 5px; }
+    .deck {
+      width: min(100%, 1600px);
+      margin: auto;
+      padding: 24px 40px;
+    }
+    .slide {
+      min-height: calc(100svh - 48px);
+      padding: 26px 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 28px;
+    }
+    .slide[hidden] { display: none; }
+    .slide.closing { align-items: center; text-align: center; border-top: 0; }
+    .closing .lead { margin: 0; }
+    .eyebrow {
+      color: var(--cyan);
+      font-size: 28px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+      margin: 0;
+    }
+    h1, h2 { font-size: clamp(48px, 4.3vw, 72px); line-height: 1.08; margin: 0; }
+    h1 { max-width: 1000px; font-size: clamp(52px, 5vw, 84px); }
+    h3 { font-size: 32px; margin: 0 0 14px; }
+    p { margin: 0; overflow-wrap: anywhere; }
+    .slide.demo { gap: 20px; padding-top: 16px; padding-bottom: 16px; }
+    .demo h2 { font-size: clamp(48px, 3.7vw, 60px); }
+    .demo pre { padding: 18px; line-height: 1.3; }
+    .demo .lead { font-size: 30px; }
+    strong { color: var(--cyan); }
+    .lead { font-size: 36px; color: var(--muted); max-width: 1100px; }
+    .grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+    .three { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .card {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 28px;
+    }
+    .card p + p { margin-top: 16px; }
+    .note {
+      color: var(--muted);
+      border-left: 4px solid var(--cyan);
+      padding-left: 22px;
+    }
+    .caution { border-left-color: var(--amber); }
+    .number { font-size: 88px; line-height: 1; color: var(--cyan); font-weight: 750; }
+    .state { display: flex; gap: 24px; align-items: center; justify-content: center; flex-wrap: wrap; }
+    .state .number { font-size: 100px; }
+    .arrow { color: var(--blue); font-size: 56px; }
+    .tag { color: var(--blue); font-size: 28px; }
+    code { color: var(--cyan); font-family: ui-monospace, monospace; overflow-wrap: anywhere; }
+    pre {
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      margin: 0;
+      padding: 24px;
+      border: 1px solid var(--line);
+      border-radius: 16px;
+      background: #080f1c;
+      font-size: 28px;
+      line-height: 1.5;
+    }
+    svg { width: 100%; height: auto; display: block; }
+    svg text { font-family: system-ui, sans-serif; fill: var(--text); font-size: 28px; }
+    svg .small { font-size: 24px; fill: var(--muted); }
+    svg rect { fill: var(--panel); stroke: var(--line); stroke-width: 2; }
+    svg .wire { fill: none; stroke: var(--cyan); stroke-width: 3; }
+    .step { display: flex; align-items: baseline; gap: 18px; margin-bottom: 18px; }
+    .step:last-child { margin-bottom: 0; }
+    .step b { color: var(--cyan); }
+    .copy-block { display: grid; gap: 10px; align-content: start; }
+    .copy-block button { justify-self: start; }
+    .copy-status { color: var(--muted); min-height: 38px; }
+    details { border: 1px solid var(--line); border-radius: 16px; padding: 16px; }
+    summary { cursor: pointer; color: var(--cyan); }
+    details[open] { border-color: var(--cyan); }
+    #commands-dialog { width: min(1100px, 94vw); max-width: none; max-height: 90svh; overflow: auto; font-size: 20px; }
+    #commands-dialog section { margin-top: 28px; scroll-margin-top: 20px; }
+    #commands-dialog h2 { font-size: 36px; }
+    #commands-dialog pre { font-size: 20px; }
+    #commands-dialog p { margin: 16px 0; }
+    .copy-block button { min-height: 50px; }
+    .demo .copy-block code { overflow-wrap: normal; word-break: normal; }
+    .demo .copy-block pre { overflow-x: auto; }
+    details .grid { margin-top: 20px; }
+    details > p { margin-top: 16px; }
+    details h3 { font-size: 28px; margin-bottom: 0; }
+    details pre { font-size: 20px; max-height: 230px; overflow: auto; padding: 16px; }
+    .demo details .copy-block code { overflow-wrap: anywhere; }
+    .sr-only {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      overflow: hidden;
+      clip-path: inset(50%);
+    }
+    dialog {
+      background: var(--panel);
+      color: var(--text);
+      border: 1px solid var(--cyan);
+      border-radius: 18px;
+      max-width: 800px;
+      padding: 36px;
+    }
+    dialog::backdrop { background: rgb(0 0 0 / .75); }
+    dialog p { margin: 20px 0; }
+    noscript p { padding: 24px; border: 2px solid var(--amber); }
+    @media (min-width: 851px) and (max-height: 800px) {
+      .deck { padding-top: 8px; }
+      .slide { gap: 18px; padding: 12px 20px; min-height: calc(100svh - 16px); }
+      .card { padding: 20px; }
+      .card p + p { margin-top: 10px; }
+      h1 { font-size: 64px; }
+      h2 { font-size: 48px; }
+      .lead { font-size: 30px; }
+      svg { max-height: 310px; }
+    }
+    @media (max-width: 850px) {
+      .deck { padding: 16px; }
+      .slide { padding: 16px 0; min-height: auto; }
+      .grid, .three { grid-template-columns: 1fr; }
+      .number, .state .number { font-size: clamp(48px, 12vw, 80px); }
+      .lead { font-size: 30px; }
+    }
+    /* Lienzo editorial: lectura por capas, sin controles permanentes. */
+    :root { --bg: #10131d; --panel: #1c2333; --line: #46516a; --cyan: #8af0cc; --blue: #aac5ff; --amber: #ffce8b; }
+    body { font-size: clamp(22px, 2vw, 28px); background: radial-gradient(ellipse at top right, #233047 0, #10131d 65%); }
+    .deck { max-width: 1500px; padding: 24px 48px; }
+    .slide { gap: 22px; position: relative; border-top: 2px solid var(--line); min-height: calc(100svh - 48px); }
+    .grid > *, .brief > *, .state > * { min-width: 0; max-width: 100%; }
+    h3, .number, td, th { overflow-wrap: anywhere; }
+    .eyebrow { font-size: 20px; font-weight: 700; letter-spacing: .12em; }
+    h1, h2 { letter-spacing: -.045em; }
+    h2 { font-size: clamp(42px, 4vw, 64px); max-width: 1250px; }
+    h3 { font-size: 28px; }
+    .lead { font-size: 30px; }
+    .card { border-radius: 6px; border-top: 3px solid var(--blue); padding: 22px; }
+    .grid { gap: 18px; }
+    .note { font-size: 23px; }
+    .number { font-size: 68px; letter-spacing: -.04em; }
+    .state .number { font-size: 76px; }
+    .state { justify-content: flex-start; gap: 20px; }
+    .brief { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; }
+    .brief > div { padding: 16px 18px; background: #161d2b; border-left: 2px solid var(--line); }
+    .label { display: block; color: var(--cyan); text-transform: uppercase; font-size: 17px; letter-spacing: .09em; font-weight: 750; margin-bottom: 7px; }
+    .risk .label { color: var(--amber); }
+    .brief p { font-size: 23px; }
+    .compact { width: 100%; border-collapse: collapse; font-size: 23px; }
+    .compact th { color: var(--cyan); text-align: left; font-size: 18px; text-transform: uppercase; letter-spacing: .06em; }
+    .compact th, .compact td { padding: 12px 16px; border-bottom: 1px solid var(--line); vertical-align: top; }
+    .compact tr:nth-child(even) { background: #1c2333; }
+    .demo .brief { grid-template-columns: 1fr 1.2fr 1fr; }
+    @media (min-width: 851px) and (max-height: 800px) {
+      .deck { padding-top: 8px; padding-bottom: 8px; }
+      .slide { gap: 14px; min-height: calc(100svh - 16px); padding: 12px 20px; }
+      .brief > div { padding: 12px 16px; }
+      .brief p, .compact { font-size: 21px; }
+      .state .number { font-size: 62px; }
+      svg { max-height: 260px; }
+    }
+    @media (max-width: 850px) {
+      .deck { padding: 16px; }
+      .brief, .demo .brief { grid-template-columns: 1fr; }
+      .compact { font-size: 18px; table-layout: fixed; }
+      .compact th, .compact td { padding: 10px 6px; }
+      .card code { font-size: clamp(16px, 4.8vw, 26px); }
+      .state .number { font-size: clamp(36px, 10vw, 64px); }
+      .slide { min-height: auto; }
+      .state { gap: 14px; }
+    }
+    @media print {
+      body { background: white; }
+      .brief > div, .compact tr:nth-child(even) { background: #edf2f8; }
+      .label, .compact th { color: #07516a; }
+      .risk .label { color: #754200; }
+      .brief p, .compact { font-size: 18px; }
+      .state .number { font-size: 54px; }
+      .slide { break-inside: avoid; }
+    }
+    .slide.architecture { gap: 16px; }
+    .architecture h2 { font-size: clamp(36px, 3.6vw, 54px); }
+    .arch-diagram { display: grid; gap: 14px; }
+    .arch-flow { display: grid; grid-template-columns: 1fr 40px 1.15fr 40px 1.55fr; gap: 12px; align-items: center; }
+    .arch-flow > * { min-width: 0; }
+    .arch-node { background: var(--panel); border: 1px solid var(--line); border-top: 3px solid var(--blue); border-radius: 8px; padding: 20px; }
+    .arch-node h3 { font-size: 28px; margin-bottom: 10px; }
+    .arch-node p { font-size: 23px; }
+    .arch-node p + p { margin-top: 12px; }
+    .arch-owner { border-top-color: var(--cyan); }
+    .arch-arrow { color: var(--cyan); font-size: 40px; text-align: center; }
+    .arch-services { display: grid; gap: 10px; }
+    .arch-services .arch-node { padding: 12px 18px; }
+    .arch-services h3 { font-size: 26px; margin-bottom: 4px; }
+    .arch-services p { font-size: 22px; }
+    .arch-session { border-top-color: var(--amber); display: grid; grid-template-columns: 1fr 1.3fr; gap: 18px; align-items: center; }
+    .arch-session h3, .arch-database h3 { margin: 0; }
+    .arch-database { display: grid; grid-template-columns: 1fr 1.3fr; gap: 18px; align-items: center; }
+    .arch-down { color: var(--cyan); margin-right: 10px; }
+    .arch-caption { font-size: 21px; color: var(--muted); }
+    @media (min-width: 851px) and (max-height: 800px) {
+      .slide.architecture { gap: 12px; }
+      .arch-node { padding: 10px 18px; }
+      .arch-diagram { gap: 10px; }
+      .arch-services { gap: 6px; }
+      .arch-services .arch-node { padding: 6px 16px; }
+      .arch-services h3 { line-height: 1.15; }
+      .arch-caption { font-size: 20px; }
+    }
+    @media (max-width: 850px) {
+      .arch-flow, .arch-session, .arch-database { grid-template-columns: 1fr; }
+      .arch-arrow { transform: rotate(90deg); line-height: 1; }
+    }
+    @media print {
+      .arch-node { background: #edf2f8; color: #111; }
+      .arch-arrow, .arch-down { color: #07516a; }
+      .arch-caption { color: #334; }
+    }
+    .case-meta { font-size: 23px; color: var(--muted); }
+    .evidence { font-size: 22px; line-height: 1.35; padding: 16px; }
+    .card .evidence { font-size: 20px; margin-top: 12px; }
+    @media (min-width: 851px) and (max-height: 800px) {
+      body { font-size: 22px; }
+      .case-meta, .note { font-size: 20px; }
+      .card { padding: 16px; }
+      h2, .demo h2 { font-size: 44px; }
+      .compact th, .compact td { padding: 8px 12px; }
+      .slide { gap: 12px; }
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .slide { animation: enter .18s ease-out; }
+      @keyframes enter { from { opacity: .5; transform: translateY(6px); } }
+    }
+    @media print {
+      body { background: white; color: #111; font-size: 20px; }
+      .deck { width: 100%; padding: 0; }
+      .slide, .slide[hidden] {
+        display: flex !important;
+        min-height: 0;
+        break-after: page;
+        padding: 20px;
+        gap: 20px;
+      }
+      dialog, noscript, [data-copy], #copy-feedback, #announcement { display: none !important; }
+      .card, pre { background: #edf2f8; color: #111; }
+      .lead, .note { color: #334; }
+      strong, code, .number, .eyebrow, .tag { color: #07516a; }
+      h1, h2 { font-size: 48px; }
+      svg text { fill: #111; }
+      svg rect { fill: #edf2f8; }
+      svg .small { fill: #334; }
+      details[open] { position: static; inset: auto; max-height: none; overflow: visible; box-shadow: none; }
+      .demo .copy-block code { overflow-wrap: anywhere; }
+    }
+  </style>
+</head>
+<body tabindex="-1">
+  <noscript><p>JavaScript está desactivado: se muestran todas las diapositivas en orden. También puede imprimirlas.</p></noscript>
+  <main class="deck" aria-label="Presentación de aseguramiento de calidad">
+    <section class="slide" id="slide-1" aria-labelledby="cover-title">
+      <p class="eyebrow">Aseguramiento de calidad</p>
+      <h1 id="cover-title">Monolito modular:<br><strong>integridad bajo prueba</strong></h1>
+      <p class="lead">Arquitectura, estrategia y cinco casos automatizados.</p>
+      <div class="grid"><div class="card"><span class="label">Integrantes</span><p>Juan David Velasquez Murillo<br>Paula Andrea Calderon Quintero</p></div><div class="card"><span class="label">Integrantes</span><p>Alejandra Madrid Calderon<br>Sara Regino Ferraro</p></div></div>
+    </section>
+    <section class="slide" id="slide-2" aria-labelledby="title-1">
+      <p class="eyebrow">Pruebas de integración · Monolito modular</p>
+      <h1 id="title-1">Un pedido.<br>Dos cambios.<br><strong>Una decisión.</strong></h1>
+      <p class="lead">La integridad del pedido se comprueba en la base, no solo en la respuesta.</p>
+      <div class="brief"><div class="risk"><span class="label">Riesgo</span><p>Descontar existencias y perder el pedido: una operación lógica queda partida.</p></div><div><span class="label">Objetivo</span><p>Confirmar stock y pedido juntos; conservar el estado ante un rechazo.</p></div><div><span class="label">Recorrido</span><p>Arquitectura → cinco contratos → demo → evidencia y límites.</p></div></div>
+      <p class="note">API local · FastAPI + SQLAlchemy + SQLite · Datos sintéticos</p>
+    </section>
+    <section class="slide architecture" id="slide-3" aria-labelledby="title-2">
+      <p class="eyebrow">Arquitectura · Diagrama de componentes</p>
+      <h2 id="title-2">Módulos internos, una aplicación</h2>
+      <div class="arch-diagram" role="group" aria-label="Flujo de creación del pedido dentro de una aplicación">
+        <div class="arch-flow">
+          <div class="arch-node">
+            <span class="label">POST /orders</span>
+            <h3>FastAPI</h3>
+            <p>Valida el cuerpo y entrega la Session.</p>
+            <p class="tag">Inválido → 422 antes de Orders</p>
+          </div>
+          <span class="arch-arrow" aria-hidden="true">→</span>
+          <div class="arch-node arch-owner">
+            <span class="label">Coordina 1 → 2 → 3</span>
+            <h3>Orders</h3>
+            <p>Un dueño de la transacción.</p>
+            <p><strong>Decide commit<br>o rollback.</strong></p>
+          </div>
+          <span class="arch-arrow" aria-hidden="true">→</span>
+          <div class="arch-services" role="group" aria-label="Colaboradores de Orders, en orden de llamada">
+            <div class="arch-node"><h3>1 · Catalog</h3><p>Consulta precio y estado activo.</p></div>
+            <div class="arch-node"><h3>2 · Inventory</h3><p>Comprueba y reserva stock.</p></div>
+            <div class="arch-node"><h3>3 · OrderPersistence</h3><p>Agrega el pedido sin commit.</p></div>
+          </div>
+        </div>
+        <div class="arch-node arch-session">
+          <h3><span class="arch-down" aria-hidden="true">↓</span>Una Session compartida</h3>
+          <p>SQLAlchemy · éxito: confirma pedido y stock;<br>rechazo o falla: revierte ambos cambios.</p>
+        </div>
+        <div class="arch-node arch-database">
+          <h3><span class="arch-down" aria-hidden="true">↓</span>SQLite</h3>
+          <p>inventory_items → products ← orders<br>Ambas tablas referencian al producto, no entre sí.</p>
+        </div>
+      </div>
+      <p class="arch-caption">Una aplicación · sin HTTP entre módulos · Database crea y cierra sesiones.</p>
+    </section>
+    <section class="slide" id="slide-4" aria-labelledby="components-title">
+      <p class="eyebrow">Arquitectura · Stack, herramientas y servicios</p><h2 id="components-title">Python: una aplicación, tres servicios internos</h2>
+      <table class="compact"><thead><tr><th>Componente</th><th>Responsabilidad</th><th>Tecnología / límite</th></tr></thead><tbody><tr><td>API</td><td>Validar cuerpo y traducir respuesta HTTP</td><td>FastAPI · no coordina stock por separado</td></tr><tr><td>Catalog</td><td>Consultar producto y exigir estado activo</td><td>Servicio real · consulta SQLite</td></tr><tr><td>Inventory</td><td>Comprobar existencias y reservar</td><td>SQLAlchemy · cambia objeto, no confirma</td></tr><tr><td>Orders</td><td>Orquestar creación y decidir commit / rollback</td><td>Misma Session para todos los colaboradores</td></tr><tr><td>Persistencia / Database</td><td>Agregar pedido / crear y cerrar sesiones</td><td>SQLAlchemy + SQLite · no deciden el commit</td></tr></tbody></table>
+      <div class="brief"><div><span class="label">Lenguaje / ejecución</span><p>Python · Uvicorn · SQLite en archivo local.</p></div><div><span class="label">API / datos</span><p>FastAPI + Pydantic · ORM SQLAlchemy · Swagger /docs.</p></div><div><span class="label">Pruebas / demo</span><p>pytest · TestClient / httpx · curl.</p></div></div>
+    </section>
+    <section class="slide" id="slide-5" aria-labelledby="flow-title">
+      <p class="eyebrow">Arquitectura · Flujo de integración</p><h2 id="flow-title">Del POST a la confirmación conjunta</h2>
+      <div class="grid"><div class="card"><span class="label">1 · Entrada</span><p>FastAPI valida product_id y cantidad. Una cantidad cero termina en 422 antes del negocio.</p></div><div class="card"><span class="label">2 · Reglas</span><p>Orders consulta Catalog; Inventory exige stock suficiente y reserva en memoria.</p></div><div class="card"><span class="label">3 · Persistencia</span><p>El adaptador agrega el pedido en la misma Session. No confirma de forma independiente.</p></div><div class="card"><span class="label">4 · Decisión</span><p>Orders confirma al final; ante rechazo o falla dentro del bloque, revierte. Otra Session verifica el estado.</p></div></div>
+      <p class="note">Ejemplo: pedir 3 de 10 debe dejar stock 7 y un pedido recuperable; no basta una respuesta exitosa.</p>
+    </section>
+    <section class="slide" id="slide-6" aria-labelledby="title-3">
+      <p class="eyebrow">Arquitectura · Transacción y relaciones</p>
+      <h2 id="title-3">Todo se confirma. O se revierte.</h2>
+      <svg viewBox="0 0 1200 330" role="img" aria-labelledby="transaction-title transaction-desc">
+        <title id="transaction-title">Una transacción y dos relaciones de datos</title>
+        <desc id="transaction-desc">Orders confirma o revierte los cambios de una misma Session. Products es referenciado por inventory, máximo una fila, y orders, muchos pedidos. No existe clave foránea entre inventory y orders. Database crea y cierra sesiones.</desc>
+        <rect x="20" y="20" width="550" height="290" rx="20"/>
+        <text x="50" y="70">Una misma Session</text>
+        <text x="50" y="130">Validar → reservar → agregar pedido</text>
+        <path class="wire" d="M70 160 H510"/>
+        <text x="50" y="210">Orders: commit / rollback</text>
+        <text x="50" y="270" class="small">Database: crear / cerrar sesión</text>
+        <rect x="770" y="20" width="230" height="75" rx="12"/>
+        <text x="815" y="68">products</text>
+        <path class="wire" d="M700 180 V125 H850 V95 M1080 180 V125 H925 V95"/>
+        <rect x="600" y="180" width="240" height="100" rx="12"/>
+        <text x="650" y="225">inventory</text><text x="625" y="262" class="small">Máximo una fila</text>
+        <rect x="930" y="180" width="240" height="100" rx="12"/>
+        <text x="995" y="225">orders</text><text x="950" y="262" class="small">Muchos pedidos</text>
+      </svg>
+      <div class="brief"><div><span class="label">Relaciones</span><p>inventory.product_id y orders.product_id referencian products.</p></div><div><span class="label">Confirmación</span><p>La reserva y el pedido comparten Session; ningún colaborador confirma solo.</p></div><div class="risk"><span class="label">Límite</span><p>Sin FK orders ↔ inventory: la transacción une los cambios. Concurrencia no probada.</p></div></div>
+    </section>
+    <section class="slide" id="slide-7" aria-labelledby="strategy-title">
+      <p class="eyebrow">Estrategia · Objetivo, alcance y niveles</p><h2 id="strategy-title">Validar integridad, no solo códigos HTTP</h2>
+      <div class="grid"><div class="card"><span class="label">Objetivo / incluidos</span><p>Comprobar creación conjunta de pedido y descuento; ausencia de cambios ante rechazos. API, Orders, Catalog, Inventory y SQLite.</p></div><div class="card"><span class="label">Niveles</span><p>4 casos de integración con servicios reales y 1 de sistema local con TestClient en proceso: sin red.</p></div><div class="card"><span class="label">Alcance</span><p>Éxito, stock insuficiente, producto inactivo, cantidad cero y falla controlada en save_order.</p></div></div>
+    </section>
+    <section class="slide" id="slide-8" aria-labelledby="title-4">
+      <p class="eyebrow">Estrategia · Puntos de integración y riesgos</p>
+      <h2 id="title-4">Probar el estado, no solo la respuesta</h2>
+      <div class="grid">
+        <div class="card"><p class="number">4 INT</p><h3>Integración</h3><p>Servicios reales + SQLite.</p></div>
+        <div class="card"><p class="number">1 SIS</p><h3>Sistema local</h3><p>TestClient: borde HTTP en proceso.</p></div>
+      </div>
+      <table class="compact"><thead><tr><th>Punto de integración</th><th>Riesgo</th><th>Herramienta / verificación</th></tr></thead><tbody><tr><td>Orders ↔ Catalog / Inventory</td><td>Aceptar un producto inválido o stock insuficiente</td><td>pytest · excepciones y estado final</td></tr><tr><td>Session ↔ persistencia SQLite</td><td>Guardar solo una parte del pedido</td><td>SQLAlchemy · consulta desde otra Session</td></tr><tr><td>FastAPI ↔ creación del pedido</td><td>Dejar entrar una cantidad inválida</td><td>TestClient · 422 y ausencia de cambios</td></tr></tbody></table>
+      <p class="note">Sistema local en proceso: sin servidor remoto, red ni despliegue productivo en TestClient.</p>
+    </section>
+
+    <section class="slide" id="slide-9" aria-labelledby="matrix-title">
+      <p class="eyebrow">Estrategia · Matriz de casos y aprobación</p><h2 id="matrix-title">Cinco casos, cinco contratos verificables</h2>
+      <table class="compact"><thead><tr><th>ID / tipo</th><th>Entrada</th><th>Resultado y estado esperados</th></tr></thead><tbody><tr><td>CP-INT-01 · Integración</td><td>Activo 10; pedir 3</td><td>Pedido recuperable, cantidad 3; stock 7</td></tr><tr><td>CP-INT-02 · Integración</td><td>Activo 10; pedir 11</td><td>InsufficientStockError; stock 10, pedidos 0</td></tr><tr><td>CP-INT-04 · Integración</td><td>Inactivo 4; pedir 2</td><td>ProductInactiveError; stock 4, pedidos 0</td></tr><tr><td>CP-SIS-03 · Sistema local</td><td>POST quantity: 0</td><td>422; stock 10, pedidos 0</td></tr><tr><td>CP-INT-05 · Integración</td><td>Activo 10; pedir 3; doble falla</td><td>PersistenceError; stock 10, pedidos 0</td></tr></tbody></table>
+      <p class="note">Aprobado = todas las aserciones satisfechas; fallido = cualquier discrepancia. Los cinco nodos constan aprobados históricamente, no ejecutados hoy.</p>
+    </section>
+    <section class="slide" id="slide-10" aria-labelledby="title-6">
+      <p class="eyebrow">Caso CP-INT-01 · Integración · Confirmación conjunta</p>
+      <h2 id="title-6">Pedir tres confirma ambos cambios</h2>
+      <p class="case-meta">Objetivo: confirmar pedido y descuento juntos. Componentes: Orders, Catalog, Inventory, persistencia y SQLite. Precondición: activo con 10, base nueva sin pedidos.</p>
+      <div class="state"><div class="card"><p>Stock inicial</p><p class="number">10</p></div><span class="arrow" aria-label="pasa a">→</span><div class="card"><p>Stock final</p><p class="number">7</p></div><span class="arrow">+</span><div class="card"><h3>Pedido recuperable</h3><p>Producto correcto</p><p>Cantidad: <strong>3</strong></p></div></div>
+      <div class="brief"><div><span class="label">Caso · integración</span><p>Producto activo con 10 unidades. Entrada: active-product, cantidad 3.</p></div><div><span class="label">Procedimiento</span><p>Crear pedido con servicios reales y consultar desde una Session nueva.</p></div><div><span class="label">Aserciones</span><p>Stock 7; pedido recuperable con el producto correcto y cantidad 3.</p></div></div>
+    </section>
+    <section class="slide" id="slide-11" aria-labelledby="insufficient-title">
+      <p class="eyebrow">Caso CP-INT-02 · Integración</p><h2 id="insufficient-title">Stock insuficiente: rechazar sin cambios</h2>
+      <p class="case-meta">Objetivo: no persistir un pedido que excede existencias. Componentes: Orders, Catalog, Inventory, Session y SQLite reales.</p>
+      <div class="grid"><div class="card"><span class="label">Precondiciones / entrada</span><p>SQLite nueva, sin pedidos; active-product activo, stock 10. Solicitar cantidad 11.</p></div><div class="card"><span class="label">Procedimiento</span><p>Crear pedido por servicio; exigir InsufficientStockError; abrir otra Session y consultar inventario y pedidos.</p></div><div class="card"><span class="label">Resultado esperado</span><p>InsufficientStockError; stock 10 y pedidos 0. Ningún cambio persistido.</p></div><div class="card"><span class="label">Resultado histórico / estado</span><p>Aprobado: test_insufficient_stock_rolls_back consta entre los cinco nodos aprobados. No es una prueba HTTP 409.</p></div></div>
+      <p class="note">Riesgo: aceptar cantidades mayores al stock.</p>
+    </section>
+    <section class="slide" id="slide-12" aria-labelledby="inactive-title">
+      <p class="eyebrow">Caso CP-INT-04 · Integración</p><h2 id="inactive-title">Producto inactivo: no reservar</h2>
+      <p class="case-meta">Objetivo: detener la venta de un producto no vendible. Componentes: Orders, Catalog, Inventory, Session y SQLite reales.</p>
+      <div class="grid"><div class="card"><span class="label">Precondiciones / entrada</span><p>SQLite nueva, sin pedidos; producto inactivo con 4 unidades. Solicitar cantidad 2.</p></div><div class="card"><span class="label">Procedimiento</span><p>Crear pedido por servicio; exigir ProductInactiveError; consultar inventario y pedidos desde otra Session.</p></div><div class="card"><span class="label">Resultado esperado</span><p>ProductInactiveError; stock 4, pedidos 0. Catalog detiene el flujo antes de reservar.</p></div><div class="card"><span class="label">Resultado histórico / estado</span><p>Aprobado: test_non_sellable_product_does_not_reserve consta entre los cinco nodos aprobados. No automatiza HTTP 409.</p></div></div>
+      <p class="note">Riesgo: vender un producto inactivo.</p>
+    </section>
+    <section class="slide" id="slide-13" aria-labelledby="title-8">
+      <p class="eyebrow">Caso CP-SIS-03 · Sistema local · Cantidad inválida</p>
+      <h2 id="title-8">422: antes del negocio</h2>
+      <p class="case-meta">Objetivo: impedir persistencia con cantidad inválida. Componentes: TestClient, FastAPI y base SQLite; validación antes de Orders.</p>
+      <div class="state"><div class="card"><h3>quantity: 0</h3><p>Cuerpo inválido</p></div><span class="arrow">→</span><div class="card"><p class="number">422</p><p>FastAPI rechaza</p></div></div>
+      <div class="brief"><div><span class="label">Caso · sistema local</span><p>Precondición: active-product activo, stock 10 y ningún pedido.</p></div><div><span class="label">Entrada / procedimiento</span><p>POST /orders mediante TestClient con quantity: 0.</p></div><div><span class="label">Aserciones</span><p>HTTP 422; otra Session observa stock 10 y cero pedidos.</p></div></div>
+      <p class="note caution">Histórico: aprobado · test_invalid_quantity_is_rejected_without_persistence. No es rollback tras reservar; la demo HTTP conservará 7.</p>
+    </section>
+    <section class="slide" id="slide-14" aria-labelledby="title-9">
+      <p class="eyebrow">Caso CP-INT-05 · Integración · Falla controlada</p>
+      <h2 id="title-9">Fallar tras reservar, antes de flush</h2>
+      <p class="case-meta">Objetivo: conservar estado ante falla de save_order. Orders, Catalog, Inventory y SQLite reales; único doble: FailingOrderPersistence. Procedimiento: crear, exigir error y consultar otra Session.</p>
+      <svg viewBox="0 0 1200 250" role="img" aria-label="Reserva en memoria, save_order falla antes de flush, rollback y verificación independiente">
+        <path class="wire" d="M30 90 H1160"/>
+        <rect x="10" y="35" width="270" height="120" rx="16"/>
+        <text x="30" y="82">1 · Reserva</text><text x="30" y="127" class="small">En memoria</text>
+        <rect x="310" y="35" width="270" height="120" rx="16"/>
+        <text x="330" y="82">2 · save_order</text><text x="330" y="127" class="small">Falla antes de flush</text>
+        <rect x="610" y="35" width="270" height="120" rx="16"/>
+        <text x="630" y="82">3 · Rollback</text><text x="630" y="127" class="small" style="font-size:22px">PersistenceError</text>
+        <rect x="910" y="35" width="270" height="120" rx="16"/>
+        <text x="930" y="82">4 · Otra Session</text>
+        <text x="930" y="114" class="small">Stock 10</text>
+        <text x="930" y="144" class="small">Pedidos 0</text>
+        <text x="310" y="215" class="small">El UPDATE todavía no fue enviado a SQLite.</text>
+      </svg>
+      <div class="brief"><div><span class="label">Caso · integración</span><p>Activo con 10, sin pedidos; solicitar 3 con FailingOrderPersistence.</p></div><div><span class="label">Aserciones</span><p>Exigir PersistenceError; consultar stock 10 y pedidos 0 en otra Session.</p></div><div class="risk"><span class="label">Qué no demuestra</span><p>Reversión de SQL ya emitido, HTTP 500 o daño físico del disco.</p></div></div>
+    </section>
+    <dialog id="commands-dialog" aria-labelledby="commands-title">
+      <h2 id="commands-title">Comandos · Terminal A / B</h2>
+      <button type="button" id="close-commands">Cerrar</button>
+      <p id="copy-feedback" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></p>
+      <p>Copiar no ejecuta comandos. Si se deniega el portapapeles: selección manual y Ctrl+C. Esc cierra.</p>
+      <section id="commands-start">
+      <h3>Arranque · Terminal A</h3>
+      <div class="copy-block">
+        <pre id="cmd-start"><code>.venv/bin/python -m scripts.init_db
+.venv/bin/python -m uvicorn app.main:create_app --factory --host 127.0.0.1 --port 8000</code></pre>
+        <button type="button" data-copy="cmd-start">Copiar arranque · Terminal A</button>
+      </div>
+
+      <details id="preparation">
+        <summary>Preparación · Terminal A y B independientes</summary>
+        <p>Raíz del proyecto ejecutable · .venv lista.</p>
+        <div class="grid">
+          <div class="copy-block">
+            <h3>Terminal A · API</h3>
+            <button type="button" data-copy="cmd-prepare-a">Copiar preparación · Terminal A</button>
+            <pre id="cmd-prepare-a"><code>mkdir -p .tmp/github-cleanup-validation
+DEMO_DIR="$(mktemp -d "$PWD/.tmp/github-cleanup-validation/demo-XXXXXXXX")"
+export DATABASE_URL="sqlite:///$DEMO_DIR/orders.db"
+export TMPDIR="$DEMO_DIR"
+export PYTHONDONTWRITEBYTECODE=1</code></pre>
+          </div>
+          <div class="copy-block">
+            <h3>Terminal B · pytest</h3>
+            <button type="button" data-copy="cmd-prepare-b">Copiar preparación · Terminal B</button>
+            <pre id="cmd-prepare-b"><code>mkdir -p .tmp/github-cleanup-validation
+TEST_DIR="$(mktemp -d "$PWD/.tmp/github-cleanup-validation/demo-tests-XXXXXXXX")"
+export TMPDIR="$TEST_DIR"
+export PYTHONDONTWRITEBYTECODE=1</code></pre>
+          </div>
+        </div>
+        <p>A y B no comparten variables. Bases temporales independientes de runtime/lab02.db.</p>
+      </details>
+
+    </section>
+    <section id="commands-initial">
+      <h3>Consultas · Terminal B</h3>
+      <div class="copy-block">
+        <pre id="cmd-initial"><code>curl -sS http://127.0.0.1:8000/health
+curl -sS http://127.0.0.1:8000/products
+curl -sS http://127.0.0.1:8000/inventory/product-active</code></pre>
+        <button type="button" data-copy="cmd-initial">Copiar consultas · Terminal B</button>
+      </div>
+
+    </section>
+    <section id="commands-success">
+      <h3>Pedido · Terminal B</h3>
+      <div class="copy-block">
+        <pre id="cmd-success"><code>curl -sS -i -X POST http://127.0.0.1:8000/orders \
+  -H 'Content-Type: application/json' \
+  -d '{"product_id":"product-active","quantity":3}'
+curl -sS http://127.0.0.1:8000/inventory/product-active</code></pre>
+        <button type="button" data-copy="cmd-success">Copiar pedido correcto · Terminal B</button>
+      </div>
+
+    </section>
+    <section id="commands-invalid">
+      <h3>Rechazo · Terminal B</h3>
+      <div class="copy-block">
+        <pre id="cmd-invalid"><code>curl -sS -i -X POST http://127.0.0.1:8000/orders \
+  -H 'Content-Type: application/json' \
+  -d '{"product_id":"product-active","quantity":0}'
+curl -sS http://127.0.0.1:8000/inventory/product-active</code></pre>
+        <button type="button" data-copy="cmd-invalid">Copiar cantidad cero · Terminal B</button>
+      </div>
+
+    </section>
+    <section id="commands-failure">
+      <h3>Fallo aislado · Terminal B</h3>
+      <div class="copy-block">
+        <pre id="cmd-failure"><code>.venv/bin/python -m pytest -q -p no:cacheprovider \
+  tests/test_orders_integration.py::test_persistence_failure_rolls_back</code></pre>
+        <button type="button" data-copy="cmd-failure">Copiar test aislado · Terminal B</button>
+      </div>
+
+    </section>
+    <section id="commands-suite">
+      <h3>Suite · Terminal B</h3>
+      <div class="copy-block">
+        <pre id="cmd-suite"><code>.venv/bin/python -m pytest -q -p no:cacheprovider</code></pre>
+        <button type="button" data-copy="cmd-suite">Copiar suite · Terminal B</button>
+      </div>
+    </section>
+    </dialog>
+    <section class="slide" id="slide-15" aria-labelledby="technical-title">
+      <p class="eyebrow">Conclusiones técnicas · Integridad y modularidad</p>
+      <h2 id="technical-title">Una operación lógica, una transacción</h2>
+      <div class="grid">
+        <div class="card"><h3>Un dueño de la decisión</h3><p>Orders coordina reserva y pedido en una misma Session. Centralizar commit / rollback evita que cada colaborador confirme una parte de la operación.</p></div>
+        <div class="card"><h3>Módulos con límites claros</h3><p>Catalog decide si el producto es vendible; Inventory comprueba y reserva existencias; persistencia agrega el pedido. Separar responsabilidades no exige microservicios.</p></div>
+        <div class="card"><h3>Reglas antes de confirmar</h3><p>Producto activo y stock suficiente son condiciones de negocio. La validación del cuerpo en FastAPI es otro límite: un 422 no demuestra rollback tras una reserva.</p></div>
+        <div class="card"><h3>Estado observable</h3><p>Consultar desde otra Session permite verificar pedido y existencias persistidos, en lugar de confundir un objeto modificado en memoria con una operación confirmada.</p></div>
+      </div>
+      <p class="note">La consistencia entre pedido e inventario depende de la coordinación transaccional, no de una clave foránea entre ambos.</p>
+    </section>
+    <section class="slide" id="slide-16" aria-labelledby="method-title">
+      <p class="eyebrow">Conclusiones metodológicas · Contratos y alcance</p>
+      <h2 id="method-title">Probar también lo que no debe cambiar</h2>
+      <div class="grid">
+        <div class="card"><h3>Negativos como contratos</h3><p><code>pytest.raises</code> exige la excepción prevista; después se verifica el estado. Capturar un error sin comprobar stock y pedidos no protege la integridad.</p></div>
+        <div class="card"><h3>Dependencias reales, doble preciso</h3><p>Catalog, Inventory y SQLite siguen siendo reales. Sustituir solo save_order permite aislar una falla técnica sin añadir un endpoint artificial ni reemplazar toda la integración.</p></div>
+        <div class="card"><h3>Aislamiento y verificación</h3><p>Una base nueva por prueba evita dependencia del orden de ejecución. Otra Session observa el estado final: el oráculo no es únicamente la respuesta del servicio.</p></div>
+        <div class="card"><h3>Evidencia acotada</h3><p>La falla controlada ocurre antes de flush, sin UPDATE emitido: no acredita reversión de SQL enviado. Tampoco el 422 acredita rollback ni los casos secuenciales prueban concurrencia.</p></div>
+      </div>
+      <p class="note">El valor metodológico está en delimitar qué contrato se comprueba y qué afirmación requiere una prueba adicional, no en prometer cobertura total.</p>
+    </section>
+    <section class="slide" id="slide-17" aria-labelledby="title-19">
+      <p class="eyebrow">Próximas pruebas</p>
+      <h2 id="title-19">Antes de prometer sobreventa cero</h2>
+      <div class="grid"><div class="card"><h3>Diseñar y medir concurrencia</h3><p>Solicitudes simultáneas.</p><p>Concurrencia no probada.</p></div><div class="card"><h3>Ampliar evidencia</h3><p>HTTP 201 / 404 / 409 / 500.</p><p>Producto sin stock.</p><p>Falla después de emitir SQL.</p></div></div>
+      <div class="brief"><div class="risk"><span class="label">Riesgo pendiente</span><p>La reserva consulta y cambia un objeto; no hay bloqueo explícito probado frente a solicitudes simultáneas.</p></div><div><span class="label">Siguiente evidencia</span><p>Diseñar casos concurrentes y observar stock y pedidos, no solo latencia o respuesta.</p></div><div><span class="label">Sin evaluación</span><p>Carga, falla física de almacenamiento, autenticación y seguridad integral.</p></div></div>
+    </section>
+    <section class="slide closing" id="slide-18" aria-labelledby="closing-title">
+      <h2 id="closing-title">Muchas gracias</h2>
+      <p class="lead">¿Preguntas?</p>
+    </section>
+  </main>
+
+  <p id="announcement" class="sr-only" aria-live="polite" aria-atomic="true"></p>
+
+  <script>
+    (() => {
+      'use strict';
+      const slides = [...document.querySelectorAll('.slide')];
+
+      const announcement = document.getElementById('announcement');
+      const commands = document.getElementById('commands-dialog');
+      let copyEpoch = 0;
+      let copySequence = 0;
+      const copyTimers = new WeakMap();
+      function finishCommandSession() {
+        copyEpoch++;
+        window.getSelection()?.removeAllRanges();
+        document.getElementById('copy-feedback').textContent = '';
+        commands.querySelectorAll('[data-copy]').forEach(button => {
+          clearTimeout(copyTimers.get(button));
+          if (button.dataset.originalLabel) button.textContent = button.dataset.originalLabel;
+        });
+        document.body.focus({ preventScroll: true });
+      }
+      function closeCommands() {
+        if (!commands.open) return;
+        commands.close();
+        finishCommandSession();
+      }
+      commands.addEventListener('close', () => {
+        if (!commands.open) finishCommandSession();
+      });
+      commands.addEventListener('cancel', event => {
+        event.preventDefault();
+        closeCommands();
+      });
+      document.getElementById('close-commands').addEventListener('click', closeCommands);
+      let current = 0;
+      slides.forEach((slide, index) => {
+        slide.dataset.title = slide.querySelector('h1, h2').textContent;
+      });
+
+      async function copyCommand(button) {
+        window.getSelection()?.removeAllRanges();
+        const epoch = copyEpoch;
+        const sequence = ++copySequence;
+        const isCurrent = () => commands.open && epoch === copyEpoch && sequence === copySequence;
+        button.dataset.originalLabel ||= button.textContent;
+        clearTimeout(copyTimers.get(button));
+        const block = document.getElementById(button.dataset.copy);
+        const feedback = document.getElementById('copy-feedback');
+        try {
+          if (!navigator.clipboard?.writeText) throw new Error('unavailable');
+          await navigator.clipboard.writeText(block.textContent);
+          if (!isCurrent()) return;
+          feedback.textContent = 'Comandos copiados. Pegue en la terminal indicada; no se ejecutó nada.';
+          button.textContent = 'Copiado';
+        } catch {
+          if (!isCurrent()) return;
+          const range = document.createRange();
+          range.selectNodeContents(block);
+          const selection = window.getSelection();
+          selection.removeAllRanges();
+          selection.addRange(range);
+          feedback.textContent = 'No se pudo copiar automáticamente. Texto seleccionado: use Ctrl+C y pegue en la terminal indicada.';
+          button.textContent = 'Seleccionado · Ctrl+C';
+        }
+        copyTimers.set(button, setTimeout(() => {
+          button.textContent = button.dataset.originalLabel;
+        }, 3000));
+      }
+      document.querySelectorAll('[data-copy]').forEach(button => {
+        button.addEventListener('click', () => copyCommand(button));
+      });
+
+      function hashIndex() {
+        const match = /^#slide-?([1-9]\d*)$/.exec(location.hash);
+        if (!match) return 0;
+        const number = Number(match[1]);
+        return Number.isSafeInteger(number) && number <= slides.length ? number - 1 : 0;
+      }
+
+      function show(index) {
+        window.getSelection()?.removeAllRanges();
+        document.getElementById('preparation').open = false;
+        current = Math.max(0, Math.min(index, slides.length - 1));
+        slides.forEach((slide, position) => {
+          const active = position === current;
+          slide.hidden = !active;
+          slide.setAttribute('aria-hidden', String(!active));
+          slide.inert = !active;
+        });
+
+        announcement.textContent = `Diapositiva ${current + 1}: ${slides[current].querySelector('h1, h2').textContent}`;
+        const hash = `#slide-${current + 1}`;
+        if (location.hash !== hash) history.replaceState(null, '', hash);
+        window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      }
+
+      async function toggleFullscreen() {
+        const status = announcement;
+        try {
+          if (document.fullscreenElement) await document.exitFullscreen();
+          else if (document.documentElement.requestFullscreen) {
+            await document.documentElement.requestFullscreen();
+          } else throw new Error('unavailable');
+        } catch {
+          status.textContent = 'Pantalla completa no disponible. Use el control de su navegador.';
+
+        }
+      }
+
+
+      window.addEventListener('hashchange', () => show(hashIndex()));
+      document.addEventListener('keydown', event => {
+        if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || document.querySelector('dialog[open]')) return;
+        if (window.getSelection()?.toString()) return;
+        if (event.target instanceof Element && event.target.closest(
+          'button, a, input, textarea, select, summary, [contenteditable]:not([contenteditable="false"]), [role="textbox"]'
+        )) return;
+        let destination;
+        switch (event.key) {
+          case 'ArrowRight':
+          case 'ArrowDown':
+          case 'PageDown': destination = current + 1; break;
+          case ' ': destination = current + (event.shiftKey ? -1 : 1); break;
+          case 'ArrowLeft':
+          case 'ArrowUp':
+          case 'PageUp': destination = current - 1; break;
+          case 'Home': destination = 0; break;
+          case 'End': destination = slides.length - 1; break;
+          case 'f':
+          case 'F': event.preventDefault(); toggleFullscreen(); return;
+          case 'c':
+          case 'C':
+            event.preventDefault();
+            commands.showModal();
+            document.getElementById('preparation').open = false;
+            commands.scrollTop = 0;
+            return;
+          default: return;
+        }
+        event.preventDefault();
+        show(destination);
+      });
+      show(hashIndex());
+    })();
+  </script>
+</body>
+</html>

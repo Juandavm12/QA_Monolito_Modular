@@ -1,0 +1,11 @@
+UTC: 2026-10-13T16:47:27.071862+00:00
+Source commit: b3f0b97
+Delivery: local documentary changes, not yet published
+Python: 3.14.7
+fastapi: 0.141.1
+starlette: 1.8.0
+httpx: 0.28.1
+SQLAlchemy: 2.1.1
+pytest: 9.1.1
+uvicorn: 0.54.0
+pydantic: 2.14.1
