@@ -26,6 +26,18 @@ class FailingOrderPersistence:
         raise RuntimeError("Controlled persistence failure")
 
 
+class FailingFlushedOrderPersistence:
+    """Fail after both the stock update and order insert reach SQLite."""
+
+    def save_order(self, session: Session, order: Order) -> None:
+        """Flush and verify uncommitted SQL state before the controlled failure."""
+        session.add(order)
+        session.flush()
+        assert InventoryService().get_inventory(session, order.product_id).quantity == 7
+        assert _order_count(session) == 1
+        raise RuntimeError("Controlled post-flush persistence failure")
+
+
 def _order_count(session: Session) -> int:
     """Return the number of persisted orders for transaction assertions."""
     return session.scalar(select(func.count()).select_from(Order)) or 0
@@ -102,6 +114,34 @@ def test_non_sellable_product_does_not_reserve(database: Database) -> None:
         assert _order_count(verification_session) == 0
     finally:
         verification_session.close()
+
+
+def test_post_flush_failure_rolls_back_before_session_close(database: Database) -> None:
+    """Explicit rollback restores SQL state before closing the caller's session."""
+    session = database.session_factory()
+    service = OrdersService(persistence=FailingFlushedOrderPersistence())
+    try:
+        with pytest.raises(PersistenceError) as failure:
+            service.place_order(
+                session,
+                CreateOrderCommand(product_id="active-product", quantity=3),
+            )
+        assert isinstance(failure.value.__cause__, RuntimeError)
+        assert str(failure.value.__cause__) == "Controlled post-flush persistence failure"
+        assert InventoryService().get_inventory(session, "active-product").quantity == 10
+        assert _order_count(session) == 0
+
+        verification_session = database.session_factory()
+        try:
+            inventory = InventoryService().get_inventory(
+                verification_session, "active-product",
+            )
+            assert inventory.quantity == 10
+            assert _order_count(verification_session) == 0
+        finally:
+            verification_session.close()
+    finally:
+        session.close()
 
 
 def test_persistence_failure_rolls_back(database: Database) -> None:

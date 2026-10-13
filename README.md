@@ -83,8 +83,8 @@ python -m pytest -q -p no:cacheprovider \
   tests/test_orders_integration.py::test_persistence_failure_rolls_back
 ```
 
-La suite contiene cinco pruebas: pedido correcto, stock insuficiente, producto inactivo, falla de persistencia tras reservar y cantidad inválida por HTTP. Cada prueba utiliza SQLite temporal; no usa la base de ejecución. Las fixtures usan `active-product`, no el identificador `product-active` de los ejemplos. La [estrategia de pruebas](docs/estrategia_pruebas.md) describe sus comprobaciones y límites.
+La suite contiene siete pruebas (cinco de integración y dos HTTP): pedido correcto, stock insuficiente, producto inactivo, falla de persistencia antes de `flush`, rollback tras SQL real y flujos HTTP válido e inválido. El flujo válido comprueba `POST` con `201`, consultas de pedido e inventario con `200` y persistencia independiente; el inválido comprueba `422`. Cada prueba utiliza SQLite temporal; no usa la base de ejecución. Las fixtures usan `active-product`, no el identificador `product-active` de los ejemplos. La [estrategia de pruebas](docs/estrategia_pruebas.md) describe sus comprobaciones y límites.
 
 ## Limitaciones
 
-El alcance es local y acotado: no hay autenticación, pagos, interfaz gráfica, colas ni servicios externos. Los cinco casos no acreditan concurrencia, carga, seguridad integral ni disponibilidad de producción. La falla técnica se inyecta en una prueba de integración, no mediante un endpoint artificial. `/health` informa disponibilidad de la aplicación, no una comprobación profunda de la base de datos.
+El alcance es local y acotado: no hay autenticación, pagos, interfaz gráfica, colas ni servicios externos. Los siete casos no acreditan concurrencia, carga, seguridad integral ni disponibilidad de producción. Las fallas técnicas se inyectan en integración antes y después de `flush`, no mediante un endpoint artificial; no se prueban fallas durante `commit` ni HTTP `500`. `/health` informa disponibilidad de la aplicación, no una comprobación profunda de la base de datos.
